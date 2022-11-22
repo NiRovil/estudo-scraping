@@ -2,8 +2,6 @@ from bs4 import BeautifulSoup as bs
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-header = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0'}
-
 def url_search(term):
     url = f'https://www.rarbggo.to/search/?search={term}&order=seeders&by=DESC'
     return url
@@ -31,25 +29,54 @@ def connection(url, headers):
 
     return soup
 
+def order(soup):
 
-term = input('Digite um termo para pesquisa: ')
-term = term.replace(' ', '%20')
+    results = []
+    try:
+        content = soup.find('tr', {'class': 'table2ta'}).findAll('td', {'class': 'tlista'})
+        contents = soup.findAll('tr', {'class': 'table2ta'})
+        counter = 0
 
+        for item in contents:
+
+            result = {}
+
+            content = item.findAll('td', {'class': 'tlista'})
+            result['name'] = content[1].find('a').attrs['title']
+            result['url'] = content[1].find('a').attrs['href']
+            result['type'] = content[2].findAll('a')[0].get_text() + content[2].findAll('a')[1].get_text()
+            result['space'] = content[4].get_text()
+            result['seeds'] = content[5].get_text()
+            result['release'] = content[7].get_text()
+
+            results.append({counter: result})
+    
+            counter += 1
+
+        return result
+    
+    except Exception as e:
+        print('Termo não encontrado')
+        another_term = input('Digite outro termo: ').replace(' ', '%20')
+        return another_term
+
+def download_page(best_links):
+    print('ok')
+
+HEADERS = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0'}
+
+term = input('Digite um termo para pesquisa: ').replace(' ', '%20')
 search_url = url_search(term)
-soup = connection(search_url, header)
-
-download_url = soup.find('td', {'class': 'tlista'})
-download_url = download_url.find('a').attrs['href']
-
-print(download_url)
+soup = connection(search_url, HEADERS)
+ordering = order(soup)
 
 
-#for item in soup.findAll('a'):
-#    if item.find_parent('td', class_='tlista'):
-#        list_results.append(item)
-#    else:
-#        continue
-
-#soup = soup.find('td', class_='tlista', align='left').findNextSiblings('a')
-
-#print(soup)
+# well, it is for a test, don't judge me
+if ordering is dict:
+    magnet = download_page(ordering)
+else:
+    term = ordering
+    search_url = url_search(term)
+    soup = connection(search_url, HEADERS)
+    ordering = order(soup)
+    magnet = download_page(ordering)
