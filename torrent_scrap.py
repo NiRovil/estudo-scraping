@@ -1,40 +1,41 @@
-import sys, subprocess
-
 from bs4 import BeautifulSoup as bs
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-def url_search(term: str):
-    url = f'https://www.rarbggo.to/search/?search={term}&order=seeders&by=DESC'
-    return url
+class ScrapSearch():
 
-def url_download(donwload_url: str):
-    url = f'https://www.rarbggo.to{donwload_url}'
-    return url
+    def __init__(self, term: str):
+        self._term = term.replace(' ', '%20')
+        return self.url_search()
 
-def treatment(html: str):
-    return " ".join(html.split()).replace('> <', '><')
+    def url_search(self):
+        url = f'https://www.rarbggo.to/search/?search={self._term}&order=seeders&by=DESC'
+        return self.order(self.connection(url))
 
-def connection(url: str, headers: dict = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0'}):
-    try:
-        req = Request(url, headers=headers)
-        response = urlopen(req)
-        html = response.read().decode('utf-8')
-        html = treatment(html)
-        soup = bs(html, 'html.parser')
-        return soup
+    def treatment(self, html: str):
+        return " ".join(html.split()).replace('> <', '><')
 
-    except HTTPError as e:
-        print(e.status, e.reason)
+    def connection(self, url: str):
+        
+        try:
+            header = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0'}
+            req = Request(url, headers=header)
+            response = urlopen(req)
+            html = response.read().decode('utf-8')
+            html = self.treatment(html)
+            soup = bs(html, 'html.parser')
+            return soup
 
-    except URLError as e:
-        print(e.reason)
+        except HTTPError as e:
+            print(e.status, e.reason)
 
-def order(soup: bs):
+        except URLError as e:
+            print(e.reason)
 
-    results = []
-    try:
-        content = soup.find('tr', {'class': 'table2ta'}).findAll('td', {'class': 'tlista'})
+    def order(self, soup: bs):
+
+        results = []
+        
         contents = soup.findAll('tr', {'class': 'table2ta'})
         counter = 0
 
@@ -53,64 +54,36 @@ def order(soup: bs):
             results.append({counter: result})
     
             counter += 1
+            
+            if counter == 5:
+                break
 
-        return results
-    
-    except Exception as e:
-        print('Termo não encontrado')
-        another_term = input('Digite outro termo: ').replace(' ', '%20')
-        return another_term
+        self.select_download(results)
 
-def select_download(links: list):
+    def select_download(self, links: list):
 
-    print('Selecione o link que mais agrada!')
-    count = 0
-    download = []
+        index = 0
+        self.filter = []
 
-    for item in links:
-        layout(count+1, item[count]['name'], item[count]['type'], item[count]['space'], item[count]['seeds'], item[count]['release'])
-        download.append([count+1, item[count]['name'], item[count]['type'], item[count]['space'], item[count]['seeds'], item[count]['release'], item[count]['url']])
-        count += 1
+        for item in links:
+            self.filter.append([index+1, item[index]['name'], item[index]['type'], item[index]['space'], item[index]['seeds'], item[index]['release'], item[index]['url']])
+            index += 1
 
-    while True:
-        selection = input('Selecione um ID: ')
+    def __call__(self):
 
-        if selection.isnumeric():
-            break
-        
-        else:
-            print('Digite somente números!')
-            continue
-    
-    return [item for item in download[int(selection)-1]]
+        return self.filter
 
-def layout(id, name, type, space, seeds, release):
-    return print(f'ID: {id} / Nome: {name} / Tipo: {type} / Tamanho: {space} / Seeds: {seeds} / Release: {release}')
+class ScrapDownload(ScrapSearch):
 
-def url_download(selected: list):
-        
-    url = f'https://www.rarbggo.to{selected[6]}'
-    soup = connection(url=url)
-    magnet = soup.select_one('a[href*=magnet]').get('href')
-    
-    if sys.platform.startswith('linux'):
-        subprocess.Popen(['xdg-open', magnet], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    def __init__(self, link):
+        self._link = link
+        self.url_download()
 
+    def url_download(self):
+            
+        URL = f'https://www.rarbggo.to{self._link}'
+        soup = self.connection(URL)
+        self.magnet = soup.select_one('a[href*=magnet]').get('href')
 
-term = input('Digite um termo para pesquisa: ').replace(' ', '%20')
-search_url = url_search(term)
-soup = connection(search_url)
-ordering = order(soup)
-selection = select_download(ordering)
-magnet = url_download(selection)
-
-
-# well, it is for a test, don't judge me
-#if ordering is dict:
-#    magnet = download_page(ordering)
-#else:
-#    term = ordering
-#    search_url = url_search(term)
-#    soup = connection(search_url, HEADERS)
-#    ordering = order(soup)
-#    magnet = download_page(ordering)
+    def __str__(self):
+        return self.magnet
