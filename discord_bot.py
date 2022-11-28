@@ -1,29 +1,105 @@
-import hikari
+import discord
 
-from torrent_scrap import ScrapSearch, ScrapDownload
+from image_scrap import Image
+from torrent_scrap import ScrapDownload, ScrapSearch
 
-bot = hikari.GatewayBot(
-    token='...', 
-    intents=hikari.Intents.ALL,
-)
+stock_img = 'https://media.istockphoto.com/id/1159854564/pt/vetorial/pirate-skull-emblem-illustration-with-crossed-sabers.jpg?s=612x612&w=is&k=20&c=nxDfMkuCWG5ZreLbNN9xqEMZM0XEqDPPpIMnzzvxlws='
 
-@bot.listen(hikari.GuildMessageCreateEvent)
-async def search(event):
+class Bot(discord.Client):
 
-    links = []
+    # Everything is alright? We need it!
+    # This send a confirmation in terminal if everything is set up.
+    async def on_ready(self): await self.ready()
 
-    if event.is_bot or not event.content:
-        pass
+    # Send the final message for the user.
+    async def on_message(self, message): await self.download_result(message)
 
-    if event.content.startswith("p."):
-        search = event.content.split('.')[1]
-        results = ScrapSearch(search)
-        for result in results():
-            links.append(result[6])
-        for result in results():
-            await event.message.respond(layout(result))
+    @staticmethod
+    def embed_message(torrents: list, query: str):
+        """
+            Creation of the final embed message sent on discord.
+        """
 
-def layout(event):
-    return f'ID: {event[0]}, Nome: {event[1]}, Tipo: {event[2]}, Espaço: {event[3]}, Seeds: {event[4]}, Release: {event[5]}, Link: {ScrapDownload(event[6])}'
+        # Define a title for the embed message.
+        title = f'Resultados para {query.upper()}'
+        embed = discord.Embed(title=title)
 
-bot.run()
+        # Scraping of an image cover for the game, if not found a stock one is used.
+        try:
+            embed.set_thumbnail(url=Image(query))
+        except:
+            embed.set_thumbnail(url=stock_img)
+
+        # For each torrent link in the top 5, create an embed link.
+        for torrent in torrents:
+            _title = torrent[1]
+            _download = ScrapDownload(torrent[6])
+            _link = "[Download]({})".format(_download)
+
+            embed.add_field(name=_title, value=_link, inline=False)
+
+        return embed
+
+    @staticmethod
+    def torrent_request(message):
+        """
+            Bot trigger!
+        """
+        content = message.content
+
+        # Difining the keywords used to trigger the bot.
+        for keyword in ['!torrent', '!t']:
+            if content.startswith(keyword + ' ') and len(content) > len(keyword + ' '):
+                return True
+            
+        return False
+
+    @staticmethod
+    def query_search(message):
+        """
+            Retrieve the query used during bot trigger.
+        """
+        content = message.content
+        filtered = content.split(' ')
+        return ' '.join(filtered[1:])
+
+    async def discord_response_query(self, query):
+        """
+            Start scraping torrents.
+        """
+        scrap = ScrapSearch(query)
+        torrents = []
+        for torrent in scrap():
+            torrents.append(torrent)
+
+        if torrents:
+            embed = self.embed_message(torrents=torrents, query=query)
+            return embed
+
+        else:
+            return 'Nada encontrado!'
+
+    async def download_result(self, message):
+        """
+            Send the final message to the user.
+        """
+
+        # Check if everything is alright with the user query.
+        if self.torrent_request(message):
+            query = self.query_search(message)
+
+            try:
+                embed = await self.discord_response_query(query=query)
+                await message.channel.send(embed=embed)
+
+            except:
+                await message.channel.send('Algo deu errado na sua busca ):')
+
+    async def ready(self):
+        print('Logged in!')
+
+# Initialing the bot.
+intents = discord.Intents.default()
+intents.message_content = True
+client = Bot(intents=intents)
+client.run('...')

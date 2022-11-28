@@ -4,25 +4,31 @@ from urllib.error import HTTPError, URLError
 
 class ScrapSearch():
 
+    """
+        Process of scraping some torrents for the bot.
+
+        If you want to use this alone, feel free to do it.
+    """
     def __init__(self, term: str):
         self._term = term.replace(' ', '%20')
-        return self.url_search()
+        self.url_search()
 
     def url_search(self):
         url = f'https://www.rarbggo.to/search/?search={self._term}&order=seeders&by=DESC'
-        return self.order(self.connection(url))
+        self.find_torrent(self.connection(url))
 
-    def treatment(self, html: str):
+    @staticmethod
+    def html_treatment(html: str):
         return " ".join(html.split()).replace('> <', '><')
 
     def connection(self, url: str):
         
         try:
-            header = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0'}
-            req = Request(url, headers=header)
-            response = urlopen(req)
+            headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0'}
+            request = Request(url, headers=headers)
+            response = urlopen(request)
             html = response.read().decode('utf-8')
-            html = self.treatment(html)
+            html = self.html_treatment(html)
             soup = bs(html, 'html.parser')
             return soup
 
@@ -32,58 +38,54 @@ class ScrapSearch():
         except URLError as e:
             print(e.reason)
 
-    def order(self, soup: bs):
+    def find_torrent(self, soup: bs):
 
-        results = []
+        torrents = []
         
         contents = soup.findAll('tr', {'class': 'table2ta'})
         counter = 0
+        
+        # Filtering the best results by query.
+        for content in contents:
 
-        for item in contents:
+            torrent = {}
 
-            result = {}
-
-            content = item.findAll('td', {'class': 'tlista'})
-            result['name'] = content[1].find('a').attrs['title']
-            result['url'] = content[1].find('a').attrs['href']
-            result['type'] = content[2].findAll('a')[0].get_text() + content[2].findAll('a')[1].get_text()
-            result['space'] = content[4].get_text()
-            result['seeds'] = content[5].get_text()
-            result['release'] = content[7].get_text()
-
-            results.append({counter: result})
-    
+            content = content.findAll('td', {'class': 'tlista'})
+            torrent['name'] = content[1].find('a').attrs['title']
+            torrent['url'] = content[1].find('a').attrs['href']
+            torrent['type'] = content[2].findAll('a')[0].get_text() + content[2].findAll('a')[1].get_text()
+            torrent['space'] = content[4].get_text()
+            torrent['seeds'] = content[5].get_text()
+            torrent['release'] = content[7].get_text()
+            torrents.append({counter: torrent})
             counter += 1
-            
+
             if counter == 5:
                 break
 
-        self.select_download(results)
-
-    def select_download(self, links: list):
+        self.torrent_filter(torrents)
+    
+    def torrent_filter(self, torrents: list):
 
         index = 0
-        self.filter = []
+        self._torrents = []
 
-        for item in links:
-            self.filter.append([index+1, item[index]['name'], item[index]['type'], item[index]['space'], item[index]['seeds'], item[index]['release'], item[index]['url']])
+        for torrent in torrents:
+            self._torrents.append([index+1, torrent[index]['name'], torrent[index]['type'], torrent[index]['space'], torrent[index]['seeds'], torrent[index]['release'], torrent[index]['url']])
             index += 1
 
     def __call__(self):
 
-        return self.filter
+        return self._torrents
 
-class ScrapDownload(ScrapSearch):
+class ScrapDownload():
 
+    """
+        Return the final url.    
+    """
     def __init__(self, link):
         self._link = link
-        self.url_download()
-
-    def url_download(self):
-            
-        URL = f'https://www.rarbggo.to{self._link}'
-        soup = self.connection(URL)
-        self.magnet = soup.select_one('a[href*=magnet]').get('href')
+        self._url = f'https://www.rarbggo.to{self._link}'
 
     def __str__(self):
-        return self.magnet
+        return self._url
