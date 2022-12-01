@@ -84,8 +84,20 @@ class ScrapDownload():
         Return the final url.    
     """
     def __init__(self, link):
-        self._link = link
-        self._url = f'https://www.rarbggo.to{self._link}'
+        self._url = f'https://www.rarbggo.to{link}'
 
     def __str__(self):
         return self._url
+
+class ScrapMagnet(ScrapSearch):
+
+    """
+        Return the final magnet.    
+    """
+    def __init__(self, link):
+        self._url = f'https://www.rarbggo.to{link}'
+        soup = self.connection(self._url)
+        self._magnet = soup.select_one('a[href*=magnet]').get('href')
+
+    def __str__(self):
+        return self._magnet

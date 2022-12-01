@@ -21,7 +21,7 @@ class Bot(discord.Client):
         """
 
         # Define a title for the embed message.
-        title = f'Resultados para {query.upper()}'
+        title = f'RESULTADOS PARA {query.upper()}'
         embed = discord.Embed(title=title)
 
         # Scraping of an image cover for the game, if not found a stock one is used.
@@ -32,7 +32,7 @@ class Bot(discord.Client):
 
         # For each torrent link in the top 5, create an embed link.
         for torrent in torrents:
-            _title = torrent[1]
+            _title = f'Name: {torrent[1]} | Space: {torrent[3]} | Seeds: {torrent[4]} | Release: {torrent[5]}'
             _download = ScrapDownload(torrent[6])
             _link = "[Download]({})".format(_download)
 
