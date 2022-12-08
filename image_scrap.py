@@ -11,23 +11,25 @@ class Image:
 
     def __init__(self, term: str):
         self._term = term.replace(' ', '-')
-        self.quick_seach()
+        self._quick_search_url = self.quick_search()
+        self._cover_art_url = self.cover_art_url()
+        self._image_url = self.image_url()
+        self._soup = self.connection(self._image_url)
+        self._image = self.get_image()
 
-    def quick_seach(self):
+    def quick_search(self):
+        quick_search_url = f'https://www.mobygames.com/search/quick?q={self._term}'
+        return quick_search_url
 
-        url = f'https://www.mobygames.com/search/quick?q={self._term}'
-        self.get_title(self.connection(url))
-
-    def full_search(self, full_term):
-
-        url = f'{full_term}/cover-art'
-        self.get_image(self.connection(url))
+    def image_url(self):
+        image_url = f'{self._cover_art_url}/cover-art'
+        return image_url
 
     @staticmethod
     def treatment(html: str):
         return " ".join(html.split()).replace('> <', '><')
 
-    def connection(self, url: str):
+    def connection(self, url):
         
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0'}
@@ -44,17 +46,18 @@ class Image:
         except URLError as e:
             print(e.reason)
     
-    def get_title(self, soup):
+    def cover_art_url(self):
 
-        # Found where the image is.
-        title = soup.find('div', {'class': 'searchTitle'}).a.get('href')
-        self.full_search(title)
+        # Pick up the first result of the quick the search.
+        soup = self.connection(self._quick_search_url)
+        cover_art_url = soup.find('div', {'class': 'searchTitle'}).a.get('href')
+        return cover_art_url
 
-    def get_image(self, soup):
+    def get_image(self):
 
         # Get the image from website.
         images = []
-        covers = soup.findAll('div', {'class': 'thumbnail-cover-caption'})
+        covers = self._soup.findAll('div', {'class': 'thumbnail-cover-caption'})
         for tag in covers:
             if 'Front Cover' in tag.get_text():
                 image = tag.previous_sibling.select_one('a').get('href')
@@ -63,8 +66,8 @@ class Image:
         soup = self.connection(f'{images[0]}')
         cover = soup.find('img', {'border': '0'}).get('src')
 
-        self._result = f'https://www.mobygames.com{cover}'
+        return f'https://www.mobygames.com{cover}'
 
-    # Return the cover as a link.    
+    # Return the cover url.    
     def __str__(self):
-        return self._result
+        return self._image

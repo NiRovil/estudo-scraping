@@ -11,21 +11,24 @@ class ScrapSearch():
     """
     def __init__(self, term: str):
         self._term = term.replace(' ', '%20')
-        self.url_search()
+        self._url = self.url_search()
+        self._soup = self.connection()
+        self._torrents = self.find_torrent()
+        self._final_torrents = self.torrent_filter()
 
     def url_search(self):
         url = f'https://www.rarbggo.to/search/?search={self._term}&order=seeders&by=DESC'
-        self.find_torrent(self.connection(url))
+        return url
 
     @staticmethod
     def html_treatment(html: str):
         return " ".join(html.split()).replace('> <', '><')
 
-    def connection(self, url: str):
+    def connection(self):
         
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0'}
-            request = Request(url, headers=headers)
+            request = Request(self._url, headers=headers)
             response = urlopen(request)
             html = response.read().decode('utf-8')
             html = self.html_treatment(html)
@@ -38,11 +41,10 @@ class ScrapSearch():
         except URLError as e:
             print(e.reason)
 
-    def find_torrent(self, soup: bs):
+    def find_torrent(self):
 
         torrents = []
-        
-        contents = soup.findAll('tr', {'class': 'table2ta'})
+        contents = self._soup.findAll('tr', {'class': 'table2ta'})
         counter = 0
         
         # Filtering the best results by query.
@@ -63,20 +65,22 @@ class ScrapSearch():
             if counter == 5:
                 break
 
-        self.torrent_filter(torrents)
+        return torrents
     
-    def torrent_filter(self, torrents: list):
+    def torrent_filter(self):
 
+        final_torrents = []
         index = 0
-        self._torrents = []
 
-        for torrent in torrents:
-            self._torrents.append([index+1, torrent[index]['name'], torrent[index]['type'], torrent[index]['space'], torrent[index]['seeds'], torrent[index]['release'], torrent[index]['url']])
+        for torrent in self._torrents:
+            final_torrents.append([index+1, torrent[index]['name'], torrent[index]['type'], torrent[index]['space'], torrent[index]['seeds'], torrent[index]['release'], torrent[index]['url']])
             index += 1
+
+        return final_torrents
 
     def __call__(self):
 
-        return self._torrents
+        return self._final_torrents
 
 class ScrapDownload():
 
@@ -96,8 +100,8 @@ class ScrapMagnet(ScrapSearch):
     """
     def __init__(self, link):
         self._url = f'https://www.rarbggo.to{link}'
-        soup = self.connection(self._url)
-        self._magnet = soup.select_one('a[href*=magnet]').get('href')
+        self._soup = self.connection()
+        self._magnet = self._soup.select_one('a[href*=magnet]').get('href')
 
     def __str__(self):
         return self._magnet
