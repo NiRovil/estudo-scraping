@@ -99,7 +99,8 @@ class Bot(discord.Client):
         print('Logged in!')
 
 # Initialing the bot.
-intents = discord.Intents.default()
-intents.message_content = True
-client = Bot(intents=intents)
-client.run('...')
+if __name__ == '__main__':
+    intents = discord.Intents.default()
+    intents.message_content = True
+    client = Bot(intents=intents)
+    client.run('...')
