@@ -1,8 +1,6 @@
-from bs4 import BeautifulSoup as bs
-from urllib.request import Request, urlopen
-from urllib.error import HTTPError, URLError
+from bot_resources import Resources
 
-class ScrapSearch():
+class ScrapSearch(Resources):
 
     """
         Process of scraping some torrents for the bot.
@@ -12,34 +10,13 @@ class ScrapSearch():
     def __init__(self, term: str):
         self._term = term.replace(' ', '%20')
         self._url = self.url_search()
-        self._soup = self.connection()
+        self._soup = self.connection(self._url)
         self._torrents = self.find_torrent()
         self._final_torrents = self.torrent_filter()
 
     def url_search(self):
         url = f'https://www.rarbggo.to/search/?search={self._term}&order=seeders&by=DESC'
         return url
-
-    @staticmethod
-    def html_treatment(html: str):
-        return " ".join(html.split()).replace('> <', '><')
-
-    def connection(self):
-        
-        try:
-            headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0'}
-            request = Request(self._url, headers=headers)
-            response = urlopen(request)
-            html = response.read().decode('utf-8')
-            html = self.html_treatment(html)
-            soup = bs(html, 'html.parser')
-            return soup
-
-        except HTTPError as e:
-            print(e.status, e.reason)
-
-        except URLError as e:
-            print(e.reason)
 
     def find_torrent(self):
 
@@ -93,7 +70,7 @@ class ScrapDownload():
     def __str__(self):
         return self._url
 
-class ScrapMagnet(ScrapSearch):
+class ScrapMagnet(Resources):
 
     """
         Return the final magnet.    
