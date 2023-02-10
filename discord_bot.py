@@ -8,7 +8,7 @@ stock_img = 'https://media.istockphoto.com/id/1159854564/pt/vetorial/pirate-skul
 class Bot(discord.Client):
 
     # Everything is alright? We need it!
-    # This send a confirmation in terminal if everything is set up.
+    # Send a confirmation in terminal if everything is set up.
     async def on_ready(self): await self.ready()
 
     # Send the final message for the user.
@@ -23,20 +23,27 @@ class Bot(discord.Client):
         # Define a title for the embed message.
         title = f'RESULTADOS PARA {query.upper()}'
         embed = discord.Embed(title=title)
+        null_result = ['Nada encontrado!', 'Tente outro termo!']
 
-        # Scraping of an image cover for the game, if not found a stock one is used.
-        try:
-            embed.set_thumbnail(url=Image(query))
-        except:
-            embed.set_thumbnail(url=stock_img)
+        if torrents:
+            # Scrap an image cover of the game, if not found, a stock one is used.
+            try:
+                embed.set_thumbnail(url=Image(query))
+            except: 
+                embed.set_thumbnail(url=stock_img)
 
-        # For each torrent link in the top 5, create an embed link.
-        for torrent in torrents:
-            _title = f'Name: {torrent[1]} | Space: {torrent[3]} | Seeds: {torrent[4]} | Release: {torrent[5]}'
-            _download = ScrapDownload(torrent[6])
-            _link = "[Download]({})".format(_download)
+            # For each torrent link in the top 5, creates an embed link.
+            for torrent in torrents:
+                _title = f'Name: {torrent[1]} | Space: {torrent[3]} | Seeds: {torrent[4]} | Release: {torrent[5]}'
+                _download = ScrapDownload(torrent[6])
+                _link = "[Download]({})".format(_download)
 
-            embed.add_field(name=_title, value=_link, inline=False)
+                embed.add_field(name=_title, value=_link, inline=False)
+
+            return embed
+        
+        embed.set_thumbnail(url=stock_img)
+        embed.add_field(name=null_result[0], value=null_result[1], inline=False)
 
         return embed
 
@@ -47,7 +54,7 @@ class Bot(discord.Client):
         """
         content = message.content
 
-        # Difining the keywords used to trigger the bot.
+        # Difine the keywords used to trigger the bot.
         for keyword in ['!torrent', '!t']:
             if content.startswith(keyword + ' ') and len(content) > len(keyword + ' '):
                 return True
@@ -63,7 +70,7 @@ class Bot(discord.Client):
         filtered = content.split(' ')
         return ' '.join(filtered[1:])
 
-    async def discord_response_query(self, query):
+    async def discord_response_query(self, message,query):
         """
             Start scraping torrents.
         """
@@ -72,12 +79,8 @@ class Bot(discord.Client):
         for torrent in scrap():
             torrents.append(torrent)
 
-        if torrents:
-            embed = self.embed_message(torrents=torrents, query=query)
-            return embed
-
-        else:
-            return 'Nada encontrado!'
+        embed = self.embed_message(torrents=torrents, query=query)
+        return embed
 
     async def download_result(self, message):
         """
@@ -89,7 +92,7 @@ class Bot(discord.Client):
             query = self.query_search(message)
 
             try:
-                embed = await self.discord_response_query(query=query)
+                embed = await self.discord_response_query(message=message, query=query)
                 await message.channel.send(embed=embed)
 
             except:
@@ -98,7 +101,7 @@ class Bot(discord.Client):
     async def ready(self):
         print('Logged in!')
 
-# Initialing the bot.
+# Launch the bot.
 if __name__ == '__main__':
     intents = discord.Intents.default()
     intents.message_content = True
