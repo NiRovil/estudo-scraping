@@ -1,7 +1,7 @@
 import discord
 
 from image_scrap import Image
-from torrent_scrap import ScrapDownload, ScrapSearch
+from torrent_scrap import *
 
 stock_img = 'https://media.istockphoto.com/id/1159854564/pt/vetorial/pirate-skull-emblem-illustration-with-crossed-sabers.jpg?s=612x612&w=is&k=20&c=nxDfMkuCWG5ZreLbNN9xqEMZM0XEqDPPpIMnzzvxlws='
 
@@ -34,7 +34,9 @@ class Bot(discord.Client):
         for torrent in torrents:
             _title = f'Name: {torrent[1]} | Space: {torrent[3]} | Seeds: {torrent[4]} | Release: {torrent[5]}'
             _download = ScrapDownload(torrent[6])
-            _link = "[Download]({})".format(_download)
+            _short_link = Resources.tormag(ScrapMagnet(torrent[6]))
+            print(_short_link)
+            _link = f"[Download]({_download}) [Short Link]({_short_link})"
 
             embed.add_field(name=_title, value=_link, inline=False)
 
@@ -76,8 +78,7 @@ class Bot(discord.Client):
             embed = self.embed_message(torrents=torrents, query=query)
             return embed
 
-        else:
-            return 'Nada encontrado!'
+        return ''
 
     async def download_result(self, message):
         """
