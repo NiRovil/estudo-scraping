@@ -64,8 +64,8 @@ class ScrapDownload():
     """
         Return the final url.    
     """
-    def __init__(self, link):
-        self._url = f'https://www.rarbggo.to{link}'
+    def __init__(self, url):
+        self._url = f'https://www.rarbggo.to{url}'
 
     def __str__(self):
         return self._url
@@ -75,10 +75,19 @@ class ScrapMagnet(Resources):
     """
         Return the final magnet.    
     """
-    def __init__(self, link):
-        self._url = f'https://www.rarbggo.to{link}'
-        self._soup = self.connection()
-        self._magnet = self._soup.select_one('a[href*=magnet]').get('href')
+    def __init__(self, url):
+        self._url = f'https://www.rarbggo.to{url}'
+        self._soup = self.connection(self._url)
+        self._magnet = self.find_magnet()
+
+    def find_magnet(self):
+
+        try:
+            soup = self._soup.select_one('a[href*=magnet]').get('href')
+            return soup
+        
+        except:
+            return ''
 
     def __str__(self):
         return self._magnet
