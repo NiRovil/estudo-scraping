@@ -1,4 +1,5 @@
 import discord
+from bot_resources import Resources
 
 from image_scrap import Image
 from torrent_scrap import *
@@ -34,9 +35,9 @@ class Bot(discord.Client):
         for torrent in torrents:
             _title = f'Name: {torrent[1]} | Space: {torrent[3]} | Seeds: {torrent[4]} | Release: {torrent[5]}'
             _download = ScrapDownload(torrent[6])
-            _short_link = Resources.tormag(ScrapMagnet(torrent[6]))
-            print(_short_link)
-            _link = f"[Download]({_download}) [Short Link]({_short_link})"
+            _magnet = ScrapMagnet(torrent[6])
+            _short_link = Resources.mgnetme(_magnet)
+            _link = f"[Download]({_download}) | [Link Direto]({_short_link})"
 
             embed.add_field(name=_title, value=_link, inline=False)
 

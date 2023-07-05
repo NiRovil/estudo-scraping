@@ -29,18 +29,30 @@ class Resources():
         return " ".join(html.split()).replace('> <', '><')
 
     @staticmethod
-    def tormag(magnets):
+    def tormag(magnet):
         apiUrl = "https://tormag.ezpz.work/api/api.php?action=insertMagnets"
-        data = {"magnets": 
-            [
-                magnet for magnet in magnets
-            ]
+        data = {
+            "magnets": [magnet]
         }
         resp = requests.post(apiUrl, json=data)
         responseJson = json.loads(resp.text)
         if "magnetEntries" in responseJson:
             links = responseJson["magnetEntries"]
             if links:
+                print(links)
                 return links
         else:
             print(responseJson["message"])
+
+    @staticmethod
+    def mgnetme(magnet):
+        apiUrl = 'http://mgnet.me/api/create'
+        data = {
+            'm': magnet,
+            'format': 'json'
+        }
+        resp = requests.post(apiUrl, data=data)
+        responseJson = json.loads(resp.text)
+        if 'shorturl' in responseJson:
+            return responseJson['shorturl']
+        
