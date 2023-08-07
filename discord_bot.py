@@ -41,7 +41,7 @@ class Bot(discord.Client):
             _short_link = Resources.mgnetme(_magnet)
             _link = f"[Download]({_download}) | [Link Direto]({_short_link})"
 
-                embed.add_field(name=_title, value=_link, inline=False)
+            embed.add_field(name=_title, value=_link, inline=False)
 
             return embed
         
@@ -107,8 +107,12 @@ class Bot(discord.Client):
         print('Logged in!')
 
 # Launch the bot.
+import os
+from dotenv import load_dotenv
+
 if __name__ == '__main__':
+    load_dotenv()
     intents = discord.Intents.default()
     intents.message_content = True
     client = Bot(intents=intents)
-    client.run('...')
+    client.run(os.getenv('API_KEY'))
